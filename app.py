@@ -1,15 +1,17 @@
-from flask import Flask, request, jsonify, make_response
-from flask_sqlalchemy import SQLAlchemy
 import os
 import uuid
-import jwt
 from datetime import datetime, timedelta
-from werkzeug.security import generate_password_hash, check_password_hash
 
+import jwt
+from flask import Flask, jsonify, make_response, request
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.config.from_object(os.environ["APP_SETTINGS"])
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+CORS(app)
 db = SQLAlchemy(app)
 
 from models import User
