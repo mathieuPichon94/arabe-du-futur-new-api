@@ -20,7 +20,7 @@ class Result(db.Model):
 
 
 class User(db.Model):
-    __tablename__ = "results"
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(50), unique=True)
     name = db.Column(db.String(100))
