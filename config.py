@@ -2,13 +2,18 @@ import os
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+DATABASE_URL = os.getenv("DATABASE_URL")  # or other relevant config var
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 
 class Config(object):
     DEBUG = False
     TESTING = False
     CSRF_ENABLED = True
     SECRET_KEY = "this-really-needs-to-be-changed"
-    SQLALCHEMY_DATABASE_URI = os.environ["DATABASE_URL"]
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    # SQLALCHEMY_DATABASE_URI = os.environ["DATABASE_URL"]
 
 
 class ProductionConfig(Config):
