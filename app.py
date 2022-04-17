@@ -4,6 +4,7 @@ import os
 import uuid
 import jwt
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 app = Flask(__name__)
@@ -14,10 +15,6 @@ db = SQLAlchemy(app)
 from models import User
 
 
-def generate_password_hash():
-    return "lol"
-
-
 @app.route("/")
 def hello():
     return "Hello World!"
@@ -26,6 +23,59 @@ def hello():
 @app.route("/<name>")
 def hello_name(name):
     return "Hello {}!".format(name)
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    # creates dictionary of form data
+    form = request.json
+    if not form:
+        # returns 401 if any email or / and password is missing
+        return make_response(
+            "Could not verify",
+            400,
+            {"WWW-Authenticate": 'Basic realm ="Login required !!"'},
+        )
+    email = form.get("email")
+    password = form.get("password")
+    print(email)
+    print(password)
+
+    if not email or not password:
+        # returns 401 if any email or / and password is missing
+        return make_response(
+            "Could not verify",
+            401,
+            {"WWW-Authenticate": 'Basic realm ="Login required !!"'},
+        )
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        # returns 401 if user does not exist
+        return make_response(
+            "Could not verify",
+            401,
+            {"WWW-Authenticate": 'Basic realm ="User does not exist !!"'},
+        )
+
+    if check_password_hash(user.password, password):
+        # generates the JWT Token
+        token = jwt.encode(
+            {
+                "public_id": user.public_id,
+                "exp": datetime.utcnow() + timedelta(minutes=30),
+            },
+            app.config["SECRET_KEY"],
+        )
+
+        return make_response(jsonify({"token": token}), 201)
+    # returns 403 if password is wrong
+    return make_response(
+        "Could not verify",
+        403,
+        {"WWW-Authenticate": 'Basic realm ="Wrong Password !!"'},
+    )
 
 
 @app.route("/signup", methods=["POST"])
@@ -72,9 +122,9 @@ def signup():
             app.config["SECRET_KEY"],
         )
 
-        return make_response(jsonify({"token": token.decode("UTF-8")}), 201)
+        return make_response(jsonify({"token": token}), 201)
 
-        return make_response("Successfully registered.", 201)
+        # return make_response("Successfully registered.", 201)
     else:
         # returns 202 if user already exists
         return make_response("User already exists. Please Log in.", 202)
