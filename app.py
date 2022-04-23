@@ -1,6 +1,7 @@
 import os
 import uuid
 from datetime import datetime, timedelta
+from functools import wraps
 
 import jwt
 from flask import Flask, jsonify, make_response, request
@@ -27,6 +28,51 @@ def hello_name(name):
     return "Hello {}!".format(name)
 
 
+# decorator for verifying the JWT
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        # jwt is passed in the request header
+        if "x-access-token" in request.headers:
+            token = request.headers["x-access-token"]
+        # return 401 if token is not passed
+        if not token:
+            return jsonify({"message": "Token is missing !!"}), 401
+
+        try:
+            # decoding the payload to fetch the stored details
+            data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
+            print(data)
+            current_user = User.query.filter_by(public_id=data["public_id"]).first()
+        except Exception as e:
+            print(e)
+            return jsonify({"message": "Token is invalid !!"}), 401
+        # returns the current logged in users contex to the routes
+        return f(current_user, *args, **kwargs)
+
+    return decorated
+
+
+@app.route("/user", methods=["GET"])
+@token_required
+def get_all_users(current_user):
+    # querying the database
+    # for all the entries in it
+    users = User.query.all()
+    # converting the query objects
+    # to list of jsons
+    output = []
+    for user in users:
+        # appending the user data json
+        # to the response list
+        output.append(
+            {"public_id": user.public_id, "name": user.name, "email": user.email}
+        )
+
+    return jsonify({"users": output})
+
+
 @app.route("/login", methods=["POST"])
 def login():
     # creates dictionary of form data
@@ -40,8 +86,6 @@ def login():
         )
     email = form.get("email")
     password = form.get("password")
-    print(email)
-    print(password)
 
     if not email or not password:
         # returns 401 if any email or / and password is missing
